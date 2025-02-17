@@ -1,5 +1,5 @@
 const dotenv = require('dotenv');
-dotenv.config("./.env")
+dotenv.config({ path: "./.env" })
 const express = require('express')
 const app = express()
 var cookieParser = require('cookie-parser')
@@ -23,7 +23,7 @@ app.get("/api/test",(req,res)=>{
 });
 app.use(
   cors({
-      origin: ["http://localhost:5173","https://frontfood-for.vercel.app"],
+      origin: ["http://localhost:5173","https://frontfood-for.vercel.app","https://food-order-1-k0tv.onrender.com"],
       methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
       credentials: true,
   })
