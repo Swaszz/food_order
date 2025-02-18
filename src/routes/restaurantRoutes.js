@@ -15,6 +15,8 @@ restaurantRouter.get('/getrestaurantdetails/:id', getrestaurantDetails);
 
 restaurantRouter.put('/updaterestaurant/:id', restaurantownerAuth, updaterestaurant);
 
+
+
 restaurantRouter.delete('/deleterestaurant/:id',restaurantownerAuth,  deleterestaurant);
 
 module.exports = restaurantRouter;

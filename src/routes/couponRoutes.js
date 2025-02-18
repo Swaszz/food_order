@@ -15,7 +15,7 @@ couponRouter.get('/get',userAuth,getAllCoupons);
 
 couponRouter.post("/apply",userAuth, applyCoupon); 
 
-couponRouter.post("/removeCoupon",restaurantownerAuth,   removeCoupon); 
+couponRouter.delete("/delete/:id", restaurantownerAuth, deleteCoupon);
 
 couponRouter.put("/update/:id", restaurantownerAuth, updateCoupon);
 

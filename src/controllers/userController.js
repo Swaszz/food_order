@@ -94,7 +94,7 @@ const userLogout = async (req, res, next) => {
             sameSite: NODE_ENV === "production" ? "None" : "Lax",
             secure: NODE_ENV === "production",
             httpOnly: NODE_ENV === "production",
-            expires: new Date(0), 
+         
         });
 
         return res.json({ message: "user logout success" });

@@ -8,18 +8,22 @@ const client_domain = process.env.CLIENT_DOMAIN;
 const createsession = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const { products } = req.body;
+        const { items } = req.body; // Ensure items is passed from the frontend
 
-        const lineItems = products.map((product) => ({
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: "Invalid items array" });
+        }
+
+        const lineItems = items.map((item) => ({
             price_data: {
                 currency: "inr",
                 product_data: {
-                    name: product?.name,
-                    images: [product?.image],
+                    name: item?.menuItemId?.name || "Unnamed Item",
+                    images: item?.menuItemId?.image ? [item.menuItemId.image] : [],
                 },
-                unit_amount: Math.round(product?.price * 100),
+                unit_amount: Math.round(item?.menuItemId?.price * 100), 
             },
-            quantity: product?.quantity || 1,
+            quantity: item?.quantity || 1,
         }));
 
         const session = await stripe.checkout.sessions.create({
@@ -33,24 +37,31 @@ const createsession = async (req, res, next) => {
         const newOrder = new Order({ userId, sessionId: session.id });
         await newOrder.save();
 
-        res.json({ success: true, sessionId: session.id });
+        res.status(201).json({ success: true, sessionId: session.id });
     } catch (error) {
-        return res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
+        console.error("Error creating checkout session:", error);
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
 };
 
 const getsession = async (req, res) => {
     try {
-        const sessionId = req.query.session_id;
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        const { session_id } = req.query;
 
-        res.send({
+        if (!session_id) {
+            return res.status(400).json({ message: "Session ID is required" });
+        }
+
+        const session = await stripe.checkout.sessions.retrieve(session_id);
+
+        res.status(200).json({
             status: session?.status,
             customer_email: session?.customer_details?.email,
             session_data: session,
         });
     } catch (error) {
-        res.status(error?.statusCode || 500).json({ message: error.message || "Internal server error" });
+        console.error("Error retrieving session status:", error);
+        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
 };
 

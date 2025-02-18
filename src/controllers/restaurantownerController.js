@@ -153,6 +153,20 @@ const restaurantownerlogin = async (req,res,next)=>{
     };
     
 
+    const restaurantowner = async (req, res) => {
+        try {
+          const owner = await Restaurantowner.findById(req.person.id).select("name email");
+      
+          if (!owner) {
+            return res.status(404).json({ message: "Restaurant owner not found" });
+          }
+      
+          res.json(owner);
+        } catch (error) {
+          console.error("❌ Error fetching owner details:", error);
+          res.status(500).json({ message: "Internal server error" });
+        }
+      };
 
 
 const restaurantownerLogout = async (req, res, next) => {
@@ -219,5 +233,6 @@ module.exports = {
     restaurantownerProfile,
     restaurantownerLogout,
     updaterestaurantownerProfile,
-    checkrestaurantowner
+    checkrestaurantowner,
+    restaurantowner
 };
