@@ -66,7 +66,7 @@ const userLogin= async (req,res,next)=>{
                 secure: NODE_ENV === "production",
                 httpOnly: NODE_ENV === "production",
             });
-    
+            
             return res.json({ data:  UserExist, message: "user Signin success" });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
@@ -90,10 +90,11 @@ const userLogin= async (req,res,next)=>{
 
 const userLogout = async (req, res, next) => {
     try {
-        res.clearCookie("token", {
+        res.clearCookie("token",  {
             sameSite: NODE_ENV === "production" ? "None" : "Lax",
             secure: NODE_ENV === "production",
             httpOnly: NODE_ENV === "production",
+            expires: new Date(0), 
         });
 
         return res.json({ message: "user logout success" });
