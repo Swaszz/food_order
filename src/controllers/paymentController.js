@@ -8,34 +8,41 @@ const client_domain = process.env.CLIENT_DOMAIN;
 const createsession = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        const { items } = req.body; // Ensure items is passed from the frontend
+        const { orderId } = req.body; // Order ID from frontend
 
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ message: "Invalid items array" });
+        if (!orderId) {
+            return res.status(400).json({ message: "Order ID is required" });
         }
 
-        const lineItems = items.map((item) => ({
+        const order = await Order.findById(orderId).populate("items.menuItemId");
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        const lineItems = order.items.map((item) => ({
             price_data: {
                 currency: "inr",
                 product_data: {
-                    name: item?.menuItemId?.name || "Unnamed Item",
-                    images: item?.menuItemId?.image ? [item.menuItemId.image] : [],
+                    name: item.menuItemId.name || "Unnamed Item",
+                    images: item.menuItemId.image ? [item.menuItemId.image] : [],
                 },
-                unit_amount: Math.round(item?.menuItemId?.price * 100), 
+                unit_amount: Math.round(item.menuItemId.price * 100),
             },
-            quantity: item?.quantity || 1,
+            quantity: item.quantity,
         }));
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: lineItems,
             mode: "payment",
-            success_url: `${client_domain}/user/payment/success`,
+            success_url: `${client_domain}/user/payment/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${client_domain}/user/payment/cancel`,
         });
 
-        const newOrder = new Order({ userId, sessionId: session.id });
-        await newOrder.save();
+        // Update order with session ID
+        order.sessionId = session.id;
+        await order.save();
 
         res.status(201).json({ success: true, sessionId: session.id });
     } catch (error) {

@@ -2,7 +2,7 @@ const express = require('express');
 const { getordersummary,
     getorderdetails,
     updateorderstatus,
-    placeorder,
+    placeorder,   latestorder,
     getorderhistory,
     cancelorder} = require('../controllers/orderController.js');
 const userAuth = require("../middlewares/userAuth.js");
@@ -26,6 +26,7 @@ orderRouter.get('/history',userAuth, getorderhistory);
 orderRouter.put('/updatestatus',restaurantownerAuth, updateorderstatus);
 
 
+orderRouter.get("/latest", userAuth,   latestorder)
 
 
 module.exports = orderRouter;
