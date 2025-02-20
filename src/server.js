@@ -23,7 +23,7 @@ app.get("/api/test",(req,res)=>{
 });
 app.use(
   cors({
-      origin: ["http://localhost:5173","https://frontfood-for.vercel.app"," https://food-order-sec.vercel.app"],
+      origin: ["http://localhost:5173","https://frontfood-for.vercel.app"],
       methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
       credentials: true,
   })
