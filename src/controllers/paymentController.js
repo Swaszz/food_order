@@ -1,22 +1,19 @@
-const Stripe = require("stripe");
+
 const Order = require("../models/orderModel.js");
 const Payment = require("../models/paymentModel.js");
-
-const stripe = new Stripe(process.env.STRIPE_PRIVATE_API_KEY);
+const stripe = require("stripe")(process.env.Stripe_Private_Api_Key);
 const client_domain = process.env.CLIENT_DOMAIN;
 
 const createsession = async (req, res) => {
     try {
-        const userId = req.user.id;
         const { orderId } = req.body;
-
         if (!orderId) {
+            console.error("❌ Order ID is required");
             return res.status(400).json({ message: "Order ID is required" });
         }
 
         console.log("🔵 Fetching Order for Payment:", orderId);
 
-        // ✅ Fix: Ensure correct reference to menuItem
         const order = await Order.findById(orderId).populate("menuItem.menuItemId");
 
         if (!order) {
@@ -26,32 +23,32 @@ const createsession = async (req, res) => {
 
         console.log("✅ Order Found:", order);
 
-        // ✅ Fix: Ensure correct reference to menuItemId
         const lineItems = order.menuItem.map((item) => ({
             price_data: {
                 currency: "inr",
                 product_data: {
-                    name: item.menuItemId.name || "Unnamed Item",
-                    images: item.menuItemId.image ? [item.menuItemId.image] : [],
+                    name: item.menuItemId?.name || "Unnamed Item",
+                    images: item.menuItemId?.image ? [item.menuItemId.image] : [],
                 },
-                unit_amount: Math.round(item.menuItemId.price * 100),
+                unit_amount: Math.round(item.price * 100),
             },
             quantity: item.quantity,
         }));
 
-        console.log("✅ Stripe Line Items:", lineItems);
+        console.log("✅ Stripe Line Items:", JSON.stringify(lineItems, null, 2));
+
+        const client_domain = process.env.CLIENT_DOMAIN ;
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: lineItems,
             mode: "payment",
-            success_url: `${client_domain}/user/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${client_domain}/user/payment/cancel`,
+            success_url: `${client_domain}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${client_domain}/payment/cancel`,
         });
 
         console.log("✅ Stripe Session Created:", session.id);
 
-        // ✅ Fix: Save session ID in order
         order.sessionId = session.id;
         await order.save();
 
