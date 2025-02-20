@@ -14,19 +14,21 @@ const orderRouter = express.Router();
 
 
 orderRouter.get('/getorder',userAuth, getordersummary);
+orderRouter.get("/latest", userAuth,   latestorder)
+orderRouter.get('/history',userAuth, getorderhistory);
 
 orderRouter.post('/placeorder',userAuth, placeorder);
 
 orderRouter.post('/orderdetails',userAuth, getorderdetails);
 
-orderRouter.delete('/cancelorder',userAuth, cancelorder);
-
-orderRouter.get('/history',userAuth, getorderhistory);
-
 orderRouter.put('/updatestatus',restaurantownerAuth, updateorderstatus);
 
+orderRouter.delete('/cancel/:id',userAuth, cancelorder);
 
-orderRouter.get("/latest", userAuth,   latestorder)
+
+
+
+
 
 
 module.exports = orderRouter;

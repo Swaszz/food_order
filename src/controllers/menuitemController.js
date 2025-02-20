@@ -6,39 +6,79 @@ const jwt =require("jsonwebtoken")
 const tokenGenerator = require('../utils/token');
 const cloudinaryInstance = require('../config/cloudinaryConfig.js');
 
-
-
-const createmenuItem = async (req,res,next)=>{
-    try{
-        const { name, description,price,category, availability ,restaurantId } = req.body;
-        console.log("Request Body:", req.body);
-        let  cloudinaryResponse 
-
-        if( !name || !description || !price || !category || ! availability ){
-            return res.status(400).json({message:"All fields are required"})
-        }
-
-        console.log('image ===',req.file)
-
-        if(req.file){
-             cloudinaryResponse = await cloudinaryInstance.uploader.upload(req.file.path);
-        }
-      
-        console.log("response ===" , cloudinaryResponse)
-           const menuitemData = new MenuItem ({name, description,price,category,image:cloudinaryResponse.url, availability ,restaurantId, });
-          
-            await menuitemData.save();
+const createmenuItem = async (req, res, next) => {
+    try {
+      const { name, description, price, category, availability, restaurantId } = req.body;
+      console.log("Request Body:", req.body);
+      let cloudinaryResponse;
+  
     
-    
-            return res.json({ data: menuitemData, message: "Menuitem created" });
-        
-    }catch(error){
-        return res.status(error.statusCode || 500).json({message: error.message || "internal server error"})
+      if (!name || !description || !price || !category || !availability ) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+     
+      console.log("Uploaded Image ===", req.file);
+      if (req.file) {
+        cloudinaryResponse = await cloudinaryInstance.uploader.upload(req.file.path);
+      }
+  
+
+     const restaurant = await Restaurant.findById(restaurantId);
+     if (!restaurant) {
+       return res.status(404).json({ message: "Restaurant not found" });
+     }
+
+      console.log("Restaurant Found:", restaurant);
+  
+      const menuitemData = new MenuItem({
+        name,
+        description,
+        price,
+        category,
+        image: cloudinaryResponse?.url || "", 
+        availability,
+        restaurantId
+      });
+  
+      await menuitemData.save();
+
+      restaurant.menuitem.push(menuitemData._id);
+      await restaurant.save();
+  
+      return res.json({ data: menuitemData, message: "Menu item created" });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        message: error.message || "Internal Server Error",
+      });
     }
-}
+  };
+  
 
+  const getMenuItemsByRestaurantId = async (req, res) => {
+    try {
+        const { restaurantId } = req.params;
+        console.log("Received restaurantId:", restaurantId); 
 
+        if (!restaurantId) {
+            return res.status(400).json({ message: "Restaurant ID is required" });
+        }
 
+        
+        const menuItems = await MenuItem.find({ restaurantId });
+
+        console.log("Fetched menu items:", menuItems);
+
+        if (!menuItems.length) {
+            return res.status(200).json({ data: [], message: "No menu items found for this restaurant." });
+        }
+
+        return res.status(200).json({ data: menuItems, message: "Menu items fetched successfully!" });
+    } catch (error) {
+        console.error("Error fetching menu items:", error);
+        return res.status(500).json({ message: error.message || "Internal server error" });
+    }
+};
 const getmenuItem = async (req,res,next)=>{
     try{
          const menuitemList = await MenuItem.find() .select("-description")
@@ -54,7 +94,7 @@ const getmenuItem = async (req,res,next)=>{
 const getmenuItemDetails = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const menuItemDetails = await MenuItem.findById(id).populate("restaurantId").lean();
+        const menuItemDetails = await MenuItem.findById(id).populate("restaurantId" ,"name").lean();
 
        const reviews = await Review.find({ restaurantId: menuItemDetails.restaurantId?._id });
 
@@ -76,6 +116,11 @@ const updatemenuItem = async (req, res, next) => {
       
         const { id} = req.params;
         const {name, description, price, category, availability} = req.body; 
+
+        if (!id) {
+            console.error("Missing ID in request params!");
+            return res.status(400).json({ message: "Missing menu item ID" });
+          }
 
         let  cloudinaryResponse 
 
@@ -203,6 +248,7 @@ module.exports  = {
     getmenuItemDetails,
     updatemenuItem,
     getmenuItemcategory,
+    getMenuItemsByRestaurantId ,
     deletemenuItem,
     searchMenuItems,
     getMenuItemCategorydetails

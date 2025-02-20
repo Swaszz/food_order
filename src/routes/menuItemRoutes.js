@@ -1,5 +1,5 @@
 const express = require('express');
-const { createmenuItem, getmenuItem, getmenuItemDetails, updatemenuItem,getmenuItemcategory, getMenuItemCategorydetails,deletemenuItem,searchMenuItems} = require('../controllers/menuitemController.js');
+const { createmenuItem, getmenuItem, getmenuItemDetails, updatemenuItem,getmenuItemcategory, getMenuItemCategorydetails,getMenuItemsByRestaurantId ,deletemenuItem,searchMenuItems} = require('../controllers/menuitemController.js');
 const restaurantownerAuth = require("../middlewares/restaurantownerAuth.js");
 const upload = require("../middlewares/multer.js");
 const jwt =require("jsonwebtoken")
@@ -13,7 +13,7 @@ menuitemRouter.get('/getmenu', getmenuItem);
 
 menuitemRouter.get('/getmenudetails/:id', getmenuItemDetails);
 
-menuitemRouter.get('/updatemenu/:id',restaurantownerAuth,upload.single("image"), updatemenuItem);
+menuitemRouter.put('/updatemenu/:id',restaurantownerAuth,upload.single("image"), updatemenuItem);
 
 menuitemRouter.get('/category', getmenuItemcategory);
 
@@ -23,5 +23,6 @@ menuitemRouter.delete('/deletemenu/:id',restaurantownerAuth,  deletemenuItem);
 
 menuitemRouter.get('/search',  searchMenuItems);
 
+menuitemRouter.get("/menubyrestaurant/:restaurantId", getMenuItemsByRestaurantId );
 
 module.exports = menuitemRouter;

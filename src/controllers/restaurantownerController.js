@@ -163,7 +163,7 @@ const restaurantownerlogin = async (req,res,next)=>{
       
           res.json(owner);
         } catch (error) {
-          console.error("❌ Error fetching owner details:", error);
+          console.error(" Error fetching owner details:", error);
           res.status(500).json({ message: "Internal server error" });
         }
       };

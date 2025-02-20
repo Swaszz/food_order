@@ -1,26 +1,33 @@
 const Stripe = require("stripe");
-
 const Order = require("../models/orderModel.js");
-const Payment = require("../models/paymentModel.js")
-const stripe = new Stripe(process.env.Stripe_Private_Api_Key);
+const Payment = require("../models/paymentModel.js");
+
+const stripe = new Stripe(process.env.STRIPE_PRIVATE_API_KEY);
 const client_domain = process.env.CLIENT_DOMAIN;
 
-const createsession = async (req, res, next) => {
+const createsession = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { orderId } = req.body; // Order ID from frontend
+        const { orderId } = req.body;
 
         if (!orderId) {
             return res.status(400).json({ message: "Order ID is required" });
         }
 
-        const order = await Order.findById(orderId).populate("items.menuItemId");
+        console.log("🔵 Fetching Order for Payment:", orderId);
+
+        // ✅ Fix: Ensure correct reference to menuItem
+        const order = await Order.findById(orderId).populate("menuItem.menuItemId");
 
         if (!order) {
+            console.error("❌ Order not found:", orderId);
             return res.status(404).json({ message: "Order not found" });
         }
 
-        const lineItems = order.items.map((item) => ({
+        console.log("✅ Order Found:", order);
+
+        // ✅ Fix: Ensure correct reference to menuItemId
+        const lineItems = order.menuItem.map((item) => ({
             price_data: {
                 currency: "inr",
                 product_data: {
@@ -32,6 +39,8 @@ const createsession = async (req, res, next) => {
             quantity: item.quantity,
         }));
 
+        console.log("✅ Stripe Line Items:", lineItems);
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: lineItems,
@@ -40,17 +49,18 @@ const createsession = async (req, res, next) => {
             cancel_url: `${client_domain}/user/payment/cancel`,
         });
 
-        // Update order with session ID
+        console.log("✅ Stripe Session Created:", session.id);
+
+        // ✅ Fix: Save session ID in order
         order.sessionId = session.id;
         await order.save();
 
         res.status(201).json({ success: true, sessionId: session.id });
     } catch (error) {
-        console.error("Error creating checkout session:", error);
+        console.error("❌ Error creating checkout session:", error);
         res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
     }
 };
-
 const getsession = async (req, res) => {
     try {
         const { session_id } = req.query;

@@ -16,12 +16,12 @@ const addrestaurant = async (req, res) => {
       if (!name || !address || !phone || !email) {
           return res.status(400).json({ message: "All fields are required" });
       }
-
+     
       const newRestaurant = new Restaurant({
           name,
           address,
           phone,
-          email
+          email,
       });
 
       await newRestaurant.save();
@@ -53,16 +53,22 @@ const addrestaurant = async (req, res) => {
 
 
 
-
-const getrestaurantDetails = async (req, res, next) => {
+  const getrestaurantDetails = async (req, res, next) => {
     try {
-    const { id } = req.params;
-        const restaurantDetails = await Restaurant.findById(id).populate("menuItemId") .lean();
+        const { id } = req.params;
+        
+        
+        const restaurantDetails = await Restaurant.findById(id)
+            .populate("menuitem")  
+            .lean();
 
-        if (!restaurantDetails) {return res.status(404).json({ message: "Restaurant not found" });}
-            
+        if (!restaurantDetails) {
+            return res.status(404).json({ message: "Restaurant not found" });
+        }
+
         const reviews = await Review.find({ restaurantId: restaurantDetails._id });
 
+        
         const totalRatings = reviews.reduce((sum, review) => sum + review.rating, 0);
         const averageRating = reviews.length > 0 ? (totalRatings / reviews.length).toFixed(1) : 0;
 

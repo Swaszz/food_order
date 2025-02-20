@@ -3,10 +3,9 @@ const mongoose = require('mongoose')
 
 
 const menuItemSchema = new mongoose.Schema({
-  menuItemId: { type: String},
+  MenuItemId:{ type: String },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant" },
   reviewId: { type: mongoose.Schema.Types.ObjectId, ref: "Review" },
-  restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant" },
   name: { type: String, required: true },
   description: { type: String },
   price: { type: Number, required: true },

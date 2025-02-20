@@ -6,6 +6,7 @@ const jwt =require("jsonwebtoken")
 const tokenGenerator = require('../utils/token');
 const Restaurant = require('../models/restaurantModel.js');
 const Coupon = require('../models/couponModel.js');
+const mongoose = require("mongoose");
 
 const addcart = async (req, res) => {
     try {
@@ -26,7 +27,7 @@ const addcart = async (req, res) => {
         if (!cart.menuItem) cart.menuItem = [];
 
        
-        const existingItem = cart.menuItem.find((item) => item.menuItemId.equals(menuItemId));
+        const existingItem = cart.menuItem.find((item) => item.menuItemId === menuItemId);
 
         if (existingItem) {
             existingItem.quantity += quantity;
@@ -54,27 +55,54 @@ const addcart = async (req, res) => {
 
 const getcart = async (req, res) => {
     try {
+        if (!req.user || !req.user.id) {
+            console.error("User ID is missing from request.");
+            return res.status(400).json({ message: "User authentication failed" });
+        }
         const userId = req.user.id;
-        const cart = await Cart.findOne({ userId }).populate("menuItem.menuItemId");
-        if (!cart) return res.status(404).json({ message: "Cart is empty" });
-        const transformedCart = {
-            cartId: cart._id,
-            cartItems: cart.menuItem.map((item) => ({
+        console.log(userId)
+        const cart = await Cart.findOne({ userId }).populate({path : "menuItem.menuItemId", model: "MenuItem"});
+        if (!cart) {
+            console.warn("Cart not found for user:", userId);
+            return res.status(404).json({ message: "Cart is empty" });
+        }
+
+        console.log("Cart data retrieved:", cart);
+    
+
+       if (!cart.menuItem || cart.menuItem.length === 0) {
+        console.warn("No items found in cart for user:", userId);
+        return res.status(404).json({ message: "Cart has no items" });
+    }
+    const transformedCart = {
+        cartId: cart._id,
+        cartItems: cart.menuItem.map((item) => {
+            
+            if (!item.menuItemId) {
+                console.warn("Missing menuItemId for cart item:", item);
+                return null; 
+            }
+
+            return {
                 _id: item.menuItemId._id,
                 name: item.menuItemId.name,
                 image: item.menuItemId.image || "/placeholder.jpg",
                 price: item.menuItemId.price,
                 quantity: item.quantity,
-            })),
-            totalAmount: cart.totalAmount,
-            appliedCoupon: cart.coupon || null,
-        };
+            };
+        }).filter(item => item !== null), 
 
+        totalAmount: cart.totalAmount || 0,
+        appliedCoupon: cart.coupon || null,
+    };
+
+       console.log(transformedCart)
         res.status(200).json({ data: transformedCart, message: "Cart fetched successfully" });;
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }
 };
+
 
 
 const getCartDetails = async (req, res) => {
