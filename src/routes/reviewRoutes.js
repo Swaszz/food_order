@@ -1,5 +1,5 @@
 const express = require('express');
-const {addreview ,getrestaurantreview,deletereview ,getaveragerating} = require('../controllers/reviewController.js');
+const {addreview ,getrestaurantreview,deletereview ,getaveragerating,getMenuItemReview} = require('../controllers/reviewController.js');
 const restaurantownerAuth = require("../middlewares/restaurantownerAuth.js");
 const userAuth = require("../middlewares/userAuth.js");
 const jwt =require("jsonwebtoken")
@@ -14,6 +14,9 @@ reviewRouter.get('/getrestaurantreview/:restaurantId',userAuth, getrestaurantrev
 
 reviewRouter.delete('/deletereview/:reviewId',userAuth, deletereview);
 
-reviewRouter.get('/getaveragerating/:restaurantId',userAuth,  getaveragerating);
+reviewRouter.get('//getaveragerating/:menuItemId',userAuth,  getaveragerating);
 
-module.exports = reviewRouter;
+reviewRouter.get('/getMenuItemReview/:menuItemId',userAuth, getMenuItemReview);
+
+
+module.exports = reviewRouter;getMenuItemReview

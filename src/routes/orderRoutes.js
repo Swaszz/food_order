@@ -14,7 +14,9 @@ const orderRouter = express.Router();
 
 
 orderRouter.get('/getorder',userAuth, getordersummary);
+
 orderRouter.get("/latest", userAuth,   latestorder)
+
 orderRouter.get('/history',userAuth, getorderhistory);
 
 orderRouter.post('/placeorder',userAuth, placeorder);

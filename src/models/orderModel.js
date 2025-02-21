@@ -23,7 +23,7 @@ const orderSchema = new mongoose.Schema({
       discountAmount: Number,
       appliedCoupon: String,
       status: { type: String, default: "Pending" },
-
+      sessionId: { type: String },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });
