@@ -17,10 +17,12 @@ mongoose.connect(`mongodb+srv://swathykrishna2227:${dbpassword}@cluster0.8vauz.m
     console.error("DB FAILED:", err.message)
   })
 
-const PORT = process.env.PORT || 3000;
-app.get("/api/test", (req, res) => {
-  res.json({ message: "API is working" });
-});
+
+
+
+app.use(express.json())
+
+
 app.use(
   cors({
     origin: ["http://localhost:5173", "https://frontfood-for.vercel.app", "https://food-order-cnsc.vercel.app"],
@@ -30,7 +32,16 @@ app.use(
 );
 
 app.use(cookieParser())
-app.use(express.json())
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.json({ message: "API is working" });
+});
+
+app.get("/test", (req, res) => {
+  res.json({ message: "test" });
+});
+
 app.use('/api', apiRouter)
 
 app.listen(3000, () => {
