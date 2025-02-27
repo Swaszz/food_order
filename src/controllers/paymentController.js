@@ -8,41 +8,41 @@ const createsession = async (req, res) => {
     try {
         const { cartId } = req.body;
         if (!cartId) {
-            console.error("❌ Cart ID is missing in request");
+            console.error("Cart ID is missing in request");
             return res.status(400).json({ message: "Cart ID is required" });
         }
 
-        console.log("🔹 Fetching Cart for Payment:", cartId);
+        console.log(" Fetching Cart for Payment:", cartId);
         const cart = await Cart.findById(cartId).populate("menuItem.menuItemId");
         if (!cart) {
-            console.error("❌ Cart not found:", cartId);
+            console.error("Cart not found:", cartId);
             return res.status(404).json({ message: "Cart not found" });
         }
-        console.log("✅ Cart Found:", cart);
+        console.log("Cart Found:", cart);
 
         const order = await Order.findOne({ cartId: cartId });
         if (!order) {
-            console.error("❌ Order not found for Cart ID:", cartId);
+            console.error(" Order not found for Cart ID:", cartId);
             return res.status(404).json({ message: "Order not found" });
         }
 
         let totalPrice = 0;
         let discountAmount = cart.discountAmount ?? 0;
-        let discountInPaise = Math.round(discountAmount * 100); // Convert to cents
+        let discountInPaise = Math.round(discountAmount * 100); 
         let lineItems = [];
 
         cart.menuItem.forEach((item, index) => {
             let finalPrice = item.discountedPrice ?? item.price;
-            let unitAmount = Math.round(finalPrice * 100); // Convert to cents
+            let unitAmount = Math.round(finalPrice * 100); 
             totalPrice += unitAmount;
 
-            // 🟢 Apply discount to first item only to adjust total
+           
             if (index === 0 && discountInPaise > 0) {
                 unitAmount -= discountInPaise;
-                unitAmount = Math.max(unitAmount, 0); // Prevent negative price
+                unitAmount = Math.max(unitAmount, 0); 
             }
 
-            console.log(`🔹 Item: ${item.menuItemId?.name}, Price: ₹${unitAmount / 100}`);
+            console.log(`Item: ${item.menuItemId?.name}, Price: ₹${unitAmount / 100}`);
 
             lineItems.push({
                 price_data: {
@@ -58,7 +58,7 @@ const createsession = async (req, res) => {
             });
         });
 
-        // Stripe session creation (without discount parameter)
+       
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: lineItems,
@@ -67,10 +67,10 @@ const createsession = async (req, res) => {
             cancel_url: `${client_domain}/user/cancel`,
         });
 
-        console.log("✅ Stripe Session Created:", session.id);
+        console.log(" Stripe Session Created:", session.id);
         res.status(201).json({ success: true, sessionId: session.id, orderId: order._id });
     } catch (error) {
-        console.error("❌ Error creating checkout session:", error);
+        console.error("Error creating checkout session:", error);
         res.status(error.statusCode || 500).json({ message: "Internal Server Error" });
     }
 };

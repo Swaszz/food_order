@@ -74,19 +74,17 @@ const applyCoupon = async (req, res) => {
             return res.status(400).json({ message: "Coupon has expired" });
         }
 
-        // Calculate discount
         const discountAmount = (cart.totalAmount * coupon.discountPercentage) / 100;
         const discountedPrice = cart.totalAmount - discountAmount;
 
-        // Update cart with discount
         cart.coupon = couponCode;
         cart.discountAmount = discountAmount;
         cart.totalAmount = discountedPrice;
         cart.updatedAt = Date.now();
 
-        await cart.save(); // Ensure changes are saved
+        await cart.save(); 
 
-        // Fetch the updated cart again to get the latest details
+      
         const updatedCart = await Cart.findById(cartId);
 
         res.status(200).json({
