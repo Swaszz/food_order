@@ -1,69 +1,79 @@
 const Order = require('../models/orderModel.js')
+const Cart = require('../models/cartModel.js')
 const bcrypt = require('bcryptjs')
 const jwt =require("jsonwebtoken")
 const tokenGenerator = require('../utils/token');
 const mongoose = require("mongoose");
 
-
 const getordersummary = async (req, res) => {
-    try {
-      const userId = req.user.id; 
-      const orders = await Order.find({ userId }).populate("menuItem.menuItemId").populate("deliveryAddress");
-  
-      if (!orders) return res.status(404).json({ message: "No orders found" });
-  
-      res.status(200).json({ success: true, data: orders });
-    } catch (error) {
-      console.error(" Error fetching orders:", error);
-      res.status(500).json({ success: false, message: "Server error" });
-    }
-  };
-  
- 
-
-
-const placeorder = async (req, res) => {
   try {
+    const userId = req.user.id; 
+    console.log(`🔹 Fetching order summary for user: ${userId}`);
 
-    const {userId } = req.body;
+    const orders = await Order.find({ userId })
+      .populate("menuItem.menuItemId", "name image price") // Populate menu items
+      .populate("deliveryAddress"); // Ensure deliveryAddress is populated
 
-    console.log(userId)
-      console.log("Order Received:", req.body);
+    console.log("🔹 MongoDB Query Result:", orders);
 
-    
-      if (!req.user || !req.user.id) {
-          return res.status(401).json({ success: false, message: "Unauthorized: No user ID found" });
-      }
-      console.log(userId)
+    if (!orders || orders.length === 0) {
+      console.warn(`⚠️ No orders found for user: ${userId}`);
+      return res.status(404).json({ success: false, message: "No orders found" });
+    }
 
-      const newOrder = new Order({
-          userId: req.user.id, 
-          menuItem: req.body.menuItem.map(item => ({
-              menuItemId: item.menuItemId,
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price,
-          })),
-          totalAmount: req.body.totalAmount,
-          discountAmount: req.body.discountAmount || 0,
-          appliedCoupon: req.body.appliedCoupon || null,
-          deliveryAddress: req.body.deliveryAddress,
-          status: "Pending", 
-      });
+    // Ensure `cartId` is present in each order
+    const formattedOrders = orders.map(order => ({
+      cartId: order.cartId || `cart_${order._id}`,  // Ensure cartId is included
+      orderId: order._id,
+      menuItem: order.menuItem,
+      totalAmount: order.totalAmount,
+      discountAmount: order.discountAmount || 0, // Ensure discount is included
+      appliedCoupon: order.appliedCoupon || null,
+      deliveryAddress: order.deliveryAddress || null,
+      status: order.status,
+      createdAt: order.createdAt,
+    }));
 
-      await newOrder.save();
-
-      console.log("Order Saved in DB:", newOrder);
-      console.log("Order ID:", newOrder._id); 
-      res.status(201).json({ success: true, data: newOrder });
+    res.status(200).json({ success: true, data: formattedOrders });
 
   } catch (error) {
-      console.error("Error Placing Order:", error);
-      res.status(500).json({ error: "Failed to place order" });
+    console.error("❌ Error fetching orders:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
+const placeorder = async (req, res) => {
+  try {
+      const { cartId, userId, totalAmount, discountAmount, appliedCoupon, orderItems } = req.body;
 
+      if (!cartId || !userId || !orderItems || orderItems.length === 0) {
+          return res.status(400).json({ success: false, message: "Missing required fields" });
+      }
 
+      // Create order in database
+      const newOrder = new Order({
+          userId,
+          cartId,
+          menuItem: orderItems,
+          totalAmount,
+          discountAmount,
+          appliedCoupon,
+      });
+
+      const savedOrder = await newOrder.save();
+      console.log("✅ Order Created Successfully:", savedOrder);
+
+      // Ensure frontend gets `orderId`
+      res.status(201).json({
+          success: true,
+          message: "Order placed successfully",
+          orderId: savedOrder._id, // ✅ Send `orderId`
+          data: savedOrder
+      });
+  } catch (error) {
+      console.error("❌ Error placing order:", error);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
   const getorderdetails = async (req, res) => {
     try {
       const { orderId } = req.body;
@@ -160,42 +170,57 @@ const placeorder = async (req, res) => {
       res.status(500).json({ success: false, message: "Server error" });
     }
   };
- const latestorder = async (req, res) => {
-  try {
-    console.log("Incoming Request - Headers:", req.headers);
-    console.log("Incoming Request - User:", req.user);
+  const latestorder = async (req, res) => {
+    try {
+        console.log("Incoming Request - Headers:", req.headers);
+        console.log("Incoming Request - User:", req.user);
 
-    if (!req.user || !req.user.id) {
-        console.error(" Unauthorized Request: No user ID found.");
-        return res.status(401).json({ success: false, message: "Unauthorized: No user ID found" });
-    }
+        if (!req.user || !req.user.id) {
+            console.error("❌ Unauthorized Request: No user ID found.");
+            return res.status(401).json({ success: false, message: "Unauthorized: No user ID found" });
+        }
 
-    const userId = req.user.id;
-    console.log("Fetching latest pending order for user:", userId);
+        const userId = req.user.id;
+        console.log("🔹 Fetching latest pending order for user:", userId);
 
-   
-    const order = await Order.findOne({ userId, status: "Pending" })
-        .sort({ createdAt: -1 })
-        .populate({
-            path: "menuItem.menuItemId",
-            model: "MenuItem",
-            select: "name image price"
+        const order = await Order.findOne({ userId, status: "Pending" })
+            .sort({ createdAt: -1 })
+            .select("cartId menuItem totalAmount discountAmount appliedCoupon userId") // ✅ Ensure cartId is retrieved
+            .populate({
+                path: "menuItem.menuItemId",
+                model: "MenuItem",
+                select: "name image price"
+            });
+
+        console.log("🔹 MongoDB Query Result:", order);
+
+        if (!order) {
+            console.warn("⚠️ No pending orders found for user:", userId);
+            return res.status(404).json({ message: "No pending orders found." });
+        }
+
+        if (!order.cartId) {
+            console.warn("⚠️ Warning: `cartId` is missing in the latest order! Generating fallback.");
+        }
+
+        // ✅ Ensure `orderId` is included correctly
+        res.json({
+            success: true,
+            orderId: order._id, // ✅ Corrected from `latestOrder._id`
+            cartId: order.cartId || `cart_${order._id}`,  // ✅ Ensure `cartId` is always present
+            orderItems: order.menuItem,
+            totalAmount: order.totalAmount,
+            discountAmount: order.discountAmount,
+            appliedCoupon: order.appliedCoupon,
+            userId: order.userId,
+            ...order._doc, // ✅ Corrected from `latestOrder._doc`
         });
 
-    console.log("MongoDB Query Result:", order);
-
-    if (!order) {
-        console.warn("No pending orders found for user:", userId);
-        return res.status(404).json({ message: "No pending orders found." });
+    } catch (error) {
+        console.error("❌ Error fetching latest order:", error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
-
-    console.log("Latest Pending Order Found:", order);
-    res.status(200).json(order);
-} catch (error) {
-    console.error("Error fetching latest order:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-}
-  };
+};
   
 module.exports  = {
     

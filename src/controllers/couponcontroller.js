@@ -48,7 +48,6 @@ const getAllCoupons = async (req, res) => {
     }
 };
 
-
 const applyCoupon = async (req, res) => {
     try {
         const { cartId, couponCode } = req.body;
@@ -62,7 +61,6 @@ const applyCoupon = async (req, res) => {
             return res.status(404).json({ message: "Cart not found" });
         }
 
-       
         if (cart.coupon) {
             return res.status(400).json({ message: "Coupon already applied!" });
         }
@@ -76,31 +74,29 @@ const applyCoupon = async (req, res) => {
             return res.status(400).json({ message: "Coupon has expired" });
         }
 
-    
+        // Calculate discount
         const discountAmount = (cart.totalAmount * coupon.discountPercentage) / 100;
         const discountedPrice = cart.totalAmount - discountAmount;
 
-        cart.coupon = couponCode;  
+        // Update cart with discount
+        cart.coupon = couponCode;
         cart.discountAmount = discountAmount;
         cart.totalAmount = discountedPrice;
         cart.updatedAt = Date.now();
 
-        await cart.save();
+        await cart.save(); // Ensure changes are saved
 
-        console.log("Coupon Applied:", { 
-            cartId: cart._id, 
-            discountAmount, 
-            appliedCoupon: cart.coupon 
-        });
+        // Fetch the updated cart again to get the latest details
+        const updatedCart = await Cart.findById(cartId);
 
         res.status(200).json({
             message: "Coupon applied successfully",
             cart: {
-                cartId: cart._id,
-                cartItems: cart.menuItem,
-                totalAmount: cart.totalAmount,
-                discountAmount: cart.discountAmount,
-                appliedCoupon: cart.coupon 
+                cartId: updatedCart._id,
+                cartItems: updatedCart.menuItem,
+                totalAmount: updatedCart.totalAmount,
+                discountAmount: updatedCart.discountAmount,
+                appliedCoupon: updatedCart.coupon
             }
         });
     } catch (error) {
@@ -108,7 +104,6 @@ const applyCoupon = async (req, res) => {
         res.status(500).json({ message: "Error applying coupon", error: error.message });
     }
 };
-
 const removeCoupon = async (req, res) => {
     try {
         const { cartId } = req.body;

@@ -1,52 +1,79 @@
 const Order = require("../models/orderModel.js");
+const Cart = require("../models/cartModel");
 const Payment = require("../models/paymentModel.js");
 const Stripe = require('stripe');
 const stripe=  new Stripe(process.env.Stripe_Private_Api_Key);
 const client_domain = process.env.CLIENT_DOMAIN;
-
-
-
 const createsession = async (req, res) => {
     try {
-        const { orderId } = req.body;
-        if (!orderId) {
-            console.error("Order ID is required");
-            return res.status(400).json({ message: "Order ID is required" });
+        const { cartId } = req.body;
+        if (!cartId) {
+            console.error("❌ Cart ID is missing in request");
+            return res.status(400).json({ message: "Cart ID is required" });
         }
-        console.log("Fetching Order for Payment:", orderId);
-        const order = await Order.findById(orderId).populate("menuItem.menuItemId");
+
+        console.log("🔹 Fetching Cart for Payment:", cartId);
+        const cart = await Cart.findById(cartId).populate("menuItem.menuItemId");
+        if (!cart) {
+            console.error("❌ Cart not found:", cartId);
+            return res.status(404).json({ message: "Cart not found" });
+        }
+        console.log("✅ Cart Found:", cart);
+
+        const order = await Order.findOne({ cartId: cartId });
         if (!order) {
-            console.error("Order not found:", orderId);
+            console.error("❌ Order not found for Cart ID:", cartId);
             return res.status(404).json({ message: "Order not found" });
         }
-        console.log("Order Found:", order);
-        const lineItems = order.menuItem.map((item) => ({
-            price_data: {
-                currency: "inr",
-                product_data: {
-                    name: item.menuItemId?.name || "Unnamed Item",
-                    images: item.menuItemId?.image ? [item.menuItemId.image] : [],
+
+        let totalPrice = 0;
+        let discountAmount = cart.discountAmount ?? 0;
+        let discountInPaise = Math.round(discountAmount * 100); // Convert to cents
+        let lineItems = [];
+
+        cart.menuItem.forEach((item, index) => {
+            let finalPrice = item.discountedPrice ?? item.price;
+            let unitAmount = Math.round(finalPrice * 100); // Convert to cents
+            totalPrice += unitAmount;
+
+            // 🟢 Apply discount to first item only to adjust total
+            if (index === 0 && discountInPaise > 0) {
+                unitAmount -= discountInPaise;
+                unitAmount = Math.max(unitAmount, 0); // Prevent negative price
+            }
+
+            console.log(`🔹 Item: ${item.menuItemId?.name}, Price: ₹${unitAmount / 100}`);
+
+            lineItems.push({
+                price_data: {
+                    currency: "inr",
+                    product_data: {
+                        name: item.menuItemId?.name || "Unnamed Item",
+                        images: item.menuItemId?.image ? [item.menuItemId.image] : [],
+                        description: `Payment for ${item.quantity} ${item.menuItemId?.name || "items"}`,
+                    },
+                    unit_amount:  unitAmount,
                 },
-                unit_amount: Math.round(item.price * 100),
-            },
-            quantity: item.quantity,
-        }));
+                quantity: item.quantity,
+            });
+        });
+
+        // Stripe session creation (without discount parameter)
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: lineItems,
             mode: "payment",
-            success_url: `${client_domain}/`,
+            success_url: `${client_domain}/user/success`,
             cancel_url: `${client_domain}/user/cancel`,
         });
-        console.log("Stripe Session Created:", session.id);
-       
-        res.status(201).json({ success: true, sessionId: session.id });
+
+        console.log("✅ Stripe Session Created:", session.id);
+        res.status(201).json({ success: true, sessionId: session.id, orderId: order._id });
     } catch (error) {
-        console.error("Error creating checkout session:", error);
-        res.status(error.statusCode || 500).json({ message: error.message || "Internal Server Error" });
+        console.error("❌ Error creating checkout session:", error);
+        res.status(error.statusCode || 500).json({ message: "Internal Server Error" });
     }
 };
-
 
 const getsession = async (req, res) => {
     try {

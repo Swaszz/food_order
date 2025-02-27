@@ -55,6 +55,7 @@ const addcart = async (req, res) => {
 
 const getcart = async (req, res) => {
     try {
+        console.log("Request User Object:", req.user);
         if (!req.user || !req.user.id) {
             console.error("User ID is missing from request.");
             return res.status(400).json({ message: "User authentication failed" });
@@ -76,6 +77,7 @@ const getcart = async (req, res) => {
     }
     const transformedCart = {
         cartId: cart._id,
+        userId: userId, 
         cartItems: cart.menuItem.map((item) => {
             
             if (!item.menuItemId) {

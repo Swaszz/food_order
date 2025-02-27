@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const orderSchema = new mongoose.Schema({
     orderId: { type: String },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    cartId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cart' },
     restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' },
     menuItem: [
         {
@@ -19,9 +20,9 @@ const orderSchema = new mongoose.Schema({
         zipCode: String,
         country: String,
       },
-      totalAmount: Number,
-      discountAmount: Number,
-      appliedCoupon: String,
+      totalAmount: { type: Number, required: true },
+      discountAmount: { type: Number, default: 0 }, // ✅ Ensure discountAmount is saved
+      appliedCoupon: { type: String, default: null },
       status: { type: String, default: "Pending" },
       sessionId: { type: String },
     createdAt: { type: Date, default: Date.now },
