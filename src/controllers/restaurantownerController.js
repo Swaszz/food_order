@@ -24,7 +24,7 @@ const restaurantownerRegister = async (req, res, next) => {
         
         const hashedPassword = bcrypt.hashSync(password, 10);
       
-        const personData = new Restaurantowner({ name,address,email,password: hashedPassword,phone,profilePic,role,});
+        const personData = new Restaurantowner({ name,address,email,password: hashedPassword,phone,profilePic,role});
         await personData.save();
 
         const token = tokenGenerator(personData._id,personData.role);
