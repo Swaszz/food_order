@@ -98,7 +98,7 @@ const restaurantownerlogin = async (req,res,next)=>{
 
     const restaurantownerProfile = async (req, res, next) => {
         try {
-            console.log("🔹 API Request Received - Fetching Profile");
+            console.log("API Request Received - Fetching Profile");
     
            
             if (!req.person) {
@@ -109,8 +109,8 @@ const restaurantownerlogin = async (req,res,next)=>{
             const personRole = req.person.role;
             const personId = req.person.id;
     
-            console.log("🔹 User Role:", personRole);
-            console.log("🔹 User ID:", personId);
+            console.log(" User Role:", personRole);
+            console.log("User ID:", personId);
     
           
             if (!personId) {

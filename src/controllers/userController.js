@@ -97,6 +97,15 @@ const userLogout = async (req, res, next) => {
          
         });
 
+        if (req.session) {
+            req.session.destroy((err) => {
+                if (err) {
+                    console.error("Error destroying session:", err);
+                    return res.status(500).json({ message: "Error logging out" });
+                }
+            });
+        }
+
         return res.json({ message: "user logout success" });
     } catch (error) {
         return res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
