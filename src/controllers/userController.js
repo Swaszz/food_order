@@ -27,7 +27,8 @@ const userRegister = async (req,res,next)=>{
             res.cookie("token", token, {
                 sameSite: NODE_ENV === "production" ? "None" : "Lax",
                 secure: NODE_ENV === "production",
-                httpOnly: NODE_ENV === "production",
+                httpOnly: true,
+              //  httpOnly: NODE_ENV === "production",
             });
     
             return res.json({ data: userData, message: "user account created" });
