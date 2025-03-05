@@ -91,6 +91,8 @@ const userLogin= async (req,res,next)=>{
 const userLogout = async (req, res, next) => {
     try {
         res.clearCookie("token",  {
+            path: "/",
+            domain: "food-order-cnsc.vercel.app",
             sameSite: NODE_ENV === "production" ? "None" : "Lax",
             secure: NODE_ENV === "production",
             httpOnly: NODE_ENV === "production",
