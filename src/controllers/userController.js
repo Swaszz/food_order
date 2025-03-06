@@ -96,7 +96,6 @@ const userLogout = async (req, res, next) => {
             sameSite: NODE_ENV === "production" ? "None" : "Lax",
             secure: NODE_ENV === "production",
             httpOnly: NODE_ENV === "production",
-         
         });
 
 
