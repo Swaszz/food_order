@@ -21,7 +21,7 @@ const orderSchema = new mongoose.Schema({
         country: String,
       },
       totalAmount: { type: Number, required: true },
-      discountAmount: { type: Number, default: 0 }, // ✅ Ensure discountAmount is saved
+      discountAmount: { type: Number, default: 0 },
       appliedCoupon: { type: String, default: null },
       status: { type: String, default: "Pending" },
       sessionId: { type: String },

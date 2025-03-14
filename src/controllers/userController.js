@@ -67,7 +67,8 @@ const userLogin= async (req,res,next)=>{
                 httpOnly: NODE_ENV === "production",
             });
             
-            return res.json({ data:  UserExist, message: "user Signin success" });
+           return res.json({ data:  UserExist, message: "user Signin success" });
+          
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
         }

@@ -1,5 +1,6 @@
 
 const Restaurantowner = require('../models/restaurantownerModel.js')
+const User = require("../models/userModel.js");
 const bcrypt = require('bcryptjs')
 const jwt =require("jsonwebtoken")
 const tokenGenerator = require('../utils/token');
@@ -217,6 +218,69 @@ const updaterestaurantownerProfile = async (req, res, next) => {
 };
 
 
+
+const getUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, "name email phone address"); 
+        const usersList = users.map((user) => ({
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            deliveryAddress: user.address
+        }));
+
+        res.status(200).json(usersList);
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+const getUserOrders = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await User.findById(userId).populate({
+            path: "orders",
+            populate: {
+                path: "menuItem.menuItemId", 
+                select: "name price image",
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const userOrders = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            deliveryAddress: user.address,
+            orders: user.orders.map((order) => ({
+                id: order._id,
+                name: order.menuItem.map(item => item.menuItemId?.name || "Unknown").join(", "),
+                price: order.totalAmount,
+                discountPrice: order.discountAmount || 0,
+                coupon: order.appliedCoupon || "No",
+                menuItem: order.menuItem.map(item => ({
+                    id: item.menuItemId?._id,
+                    name: item.menuItemId?.name,
+                    image: item.menuItemId?.image || "https://via.placeholder.com/150"
+                }))
+            })),
+            totalAmount: user.orders.reduce(
+                (acc, order) => acc + (order.discountAmount || order.totalAmount), 0
+            ),
+        };
+
+        res.status(200).json(userOrders);
+    } catch (error) {
+        console.error("Error fetching user orders:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
 const checkrestaurantowner = async (req, res, next) => {
     try {
 
@@ -234,5 +298,7 @@ module.exports = {
     restaurantownerLogout,
     updaterestaurantownerProfile,
     checkrestaurantowner,
+    getUsers,
+    getUserOrders ,
     restaurantowner
 };

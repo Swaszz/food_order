@@ -1,4 +1,5 @@
 const Order = require('../models/orderModel.js')
+const  User = require('../models/userModel.js')
 const Cart = require('../models/cartModel.js')
 const bcrypt = require('bcryptjs')
 const jwt =require("jsonwebtoken")
@@ -41,6 +42,7 @@ const getordersummary = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 const placeorder = async (req, res) => {
   try {
       const { cartId, userId, totalAmount, discountAmount, appliedCoupon, orderItems } = req.body;
@@ -49,7 +51,6 @@ const placeorder = async (req, res) => {
           return res.status(400).json({ success: false, message: "Missing required fields" });
       }
 
-     
       const newOrder = new Order({
           userId,
           cartId,
@@ -62,11 +63,12 @@ const placeorder = async (req, res) => {
       const savedOrder = await newOrder.save();
       console.log(" Order Created Successfully:", savedOrder);
 
-     
+      await User.findByIdAndUpdate(userId, { $push: { orders: savedOrder._id } });
+
       res.status(201).json({
           success: true,
           message: "Order placed successfully",
-          orderId: savedOrder._id, 
+          orderId: savedOrder._id,
           data: savedOrder
       });
   } catch (error) {
@@ -128,31 +130,42 @@ const placeorder = async (req, res) => {
   
   const getorderhistory = async (req, res) => {
     try {
-      console.log("Authenticated User:", req.user);  
-
-      if (!req.user || !req.user.id) { 
-          console.log(" User ID is missing in req.user:", req.user);
-          return res.status(401).json({ success: false, message: "Unauthorized: No user ID found" });
+      const userId = req.user?.id || req.query.userId;
+  
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
       }
-
-    
-      const userId = new mongoose.Types.ObjectId(req.user.id);  
-
-    
-      const userOrders = await Order.find({ userId }).sort({ createdAt: -1 });
-
-      console.log(`Orders for User ${req.user.id}:`, userOrders);
-
-      if (userOrders.length === 0) {
-          return res.status(200).json({ success: true, data: [], message: "No order history found." });
+  
+     
+      const orders = await Order.find({ userId }).populate({
+        path: "menuItem.menuItemId", 
+        select: "name image price",
+        options: { strictPopulate: false }, 
+      });
+  
+      if (!orders.length) {
+        return res.status(404).json({ message: "No orders found for this user" });
       }
-
-      res.status(200).json({ success: true, data: userOrders });
-  } catch (error) {
+  
+      const formattedOrders = orders.map(order => ({
+        _id: order._id,
+        createdAt: order.createdAt,
+        totalAmount: order.totalAmount,
+        menuItems: order.menuItem.map(item => ({
+          _id: item.menuItemId?._id,
+          name: item.menuItemId?.name || "Unknown",
+          image: item.menuItemId?.image || "https://via.placeholder.com/100",
+          quantity: item.quantity,
+          price: item.price || 0, 
+        })),
+      }));
+  
+      res.status(200).json(formattedOrders);
+    } catch (error) {
       console.error("Error fetching order history:", error);
-      res.status(500).json({ success: false, message: "Server error" });
-  }
-};
+      res.status(500).json({ message: "Server error" });
+    }
+  };
   const updateorderstatus = async (req, res) => {
     try {
       const { orderId, status } = req.body;
